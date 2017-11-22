@@ -221,7 +221,7 @@ static int md5update_str(PyObject *md5obj, PyObject *obj, int maxlen) {
 
   if (obj->ob_type == &PDFStringType) {
     obj = ((PDFString *)obj)->raw;
-  } else if (!PyString_Check(obj)) {
+  } else if (!PyBytes_Check(obj)) {
     PyErr_SetString(pdferror, "MD5 update value is not a string");
     return 0;
   }
@@ -807,13 +807,13 @@ static int get_intval(PyObject *dict, const char *key, long *retval) {
 
   if (!(obj = PyMapping_GetItemString(dict, (char *)key)))
     return 0;
-  if (!PyInt_Check(obj)) {
+  if (!PyLong_Check(obj)) {
     pdf_error(NULL, NULL, "Dictionary %s value is a %s not an integer", key,
         obj->ob_type->tp_name);
     Py_DECREF(obj);
     return 0;
   }
-  *retval = PyInt_AsLong(obj);
+  *retval = PyLong_AsLong(obj);
   Py_DECREF(obj);
   return (*retval != -1 || !PyErr_Occurred());
 }
@@ -907,7 +907,7 @@ static PyObject *read_filtered_data(PDF *self, PyObject *value,
 
   if (value->ob_type == &PDFStringType)
     value = ((PDFString *)value)->raw;
-  if (!PyString_Check(value))
+  if (!PyBytes_Check(value))
     return pdf_error(self, NULL, "Filtered data is a %s not a string",
         value->ob_type->tp_name);
   if (!length)
@@ -976,7 +976,7 @@ static PyObject *streamobject_get_data(StreamObject *self, void *closure) {
     Py_DECREF(name);
     if (!value)
       return NULL;
-    if (PyString_AsStringAndSize(value, &buffer, &buflen) < 0) {
+    if (PyBytes_AsStringAndSize(value, &buffer, &buflen) < 0) {
       Py_DECREF(value);
       return NULL;
     }
@@ -1087,7 +1087,7 @@ static PyObject *parse_contents(PDF *self, PyObject *contents) {
   PyObject *entry;
   PyObject *obj;
 
-  if (PyString_AsStringAndSize((contents->ob_type == &PDFStringType) ?
+  if (PyBytes_AsStringAndSize((contents->ob_type == &PDFStringType) ?
         ((PDFString *)contents)->raw : contents, &data, &len) < 0)
     return NULL;
   if (!(result = PyList_New(0)))
@@ -1279,9 +1279,9 @@ static PyObject *decode_font_string_encoding(PyObject *encoding,
     if (!(iter = PyObject_GetIter(differences)))
       goto error;
     while ((item = PyIter_Next(iter))) {
-      if (PyInt_Check(item)) {
-        charno = PyInt_AS_LONG(item);
-      } else if (PyString_Check(item) || PyUnicode_Check(item)) {
+      if (PyLong_Check(item)) {
+        charno = PyLong_AS_LONG(item);
+      } else if (PyBytes_Check(item) || PyUnicode_Check(item)) {
         if (charno == *data) { /* found an entry for our byte value */
           if (!(obj = PyObject_GetItem(glyphlist, item))) {
             PyErr_Clear();
@@ -1346,7 +1346,7 @@ static int cmap_match_coderange(PyObject *ranges, const unsigned char *data,
   for (i = 0; i + 1 < rangeslen - 1; i += 2) {
     if (!(obj = PySequence_GetItem(ranges, i)))
       return -1;
-    if (PyString_AsStringAndSize((obj->ob_type == &PDFStringType) ?
+    if (PyBytes_AsStringAndSize((obj->ob_type == &PDFStringType) ?
           ((PDFString *)obj)->raw : obj, (char **)&codebytes, &codelen) < 0) {
       Py_DECREF(obj);
       return -1;
@@ -1370,7 +1370,7 @@ static int cmap_match_coderange(PyObject *ranges, const unsigned char *data,
     }
     if (!(obj = PySequence_GetItem(ranges, i + 1)))
       return -1;
-    if (PyString_AsStringAndSize((obj->ob_type == &PDFStringType) ?
+    if (PyBytes_AsStringAndSize((obj->ob_type == &PDFStringType) ?
           ((PDFString *)obj)->raw : obj, (char **)&codebytes, &codelen2) < 0) {
       Py_DECREF(obj);
       return -1;
@@ -1415,7 +1415,7 @@ static PyObject *cmap_match_bfrange(PyObject *chars, const unsigned char *data,
   for (i = 0; i + 2 < charslen - 1; i += 3) {
     if (!(obj = PySequence_GetItem(chars, i + 1)))
       return NULL;
-    if (PyString_AsStringAndSize((obj->ob_type == &PDFStringType) ?
+    if (PyBytes_AsStringAndSize((obj->ob_type == &PDFStringType) ?
           ((PDFString *)obj)->raw : obj, (char **)&codebytes, &codelen) < 0) {
       Py_DECREF(obj);
       return NULL;
@@ -1437,7 +1437,7 @@ static PyObject *cmap_match_bfrange(PyObject *chars, const unsigned char *data,
     }
     if (!(obj = PySequence_GetItem(chars, i)))
       return NULL;
-    if (PyString_AsStringAndSize((obj->ob_type == &PDFStringType) ?
+    if (PyBytes_AsStringAndSize((obj->ob_type == &PDFStringType) ?
           ((PDFString *)obj)->raw : obj, (char **)&codebytes, &valuelen) < 0) {
       Py_DECREF(obj);
       return NULL;
@@ -1475,11 +1475,11 @@ static PyObject *cmap_match_bfrange(PyObject *chars, const unsigned char *data,
         *lenp = codelen;
         return obj;
       }
-      if (obj2->ob_type != &PDFStringType && obj2->ob_type != &PyString_Type) {
+      if (obj2->ob_type != &PDFStringType && obj2->ob_type != &PyBytes_Type) {
         Py_DECREF(obj2);
         continue;
       }
-      if (PyString_AsStringAndSize((obj2->ob_type == &PDFStringType) ?
+      if (PyBytes_AsStringAndSize((obj2->ob_type == &PDFStringType) ?
             ((PDFString *)obj2)->raw : obj2, (char **)&codebytes, &valuelen)
           < 0) {
         Py_DECREF(obj2);
@@ -1495,11 +1495,11 @@ static PyObject *cmap_match_bfrange(PyObject *chars, const unsigned char *data,
       *lenp = codelen;
       return obj;
     }
-    if (obj->ob_type != &PDFStringType && obj->ob_type != &PyString_Type) {
+    if (obj->ob_type != &PDFStringType && obj->ob_type != &PyBytes_Type) {
       Py_DECREF(obj);
       continue;
     }
-    if (PyString_AsStringAndSize((obj->ob_type == &PDFStringType) ?
+    if (PyBytes_AsStringAndSize((obj->ob_type == &PDFStringType) ?
           ((PDFString *)obj)->raw : obj, (char **)&codebytes, &valuelen) < 0) {
       Py_DECREF(obj);
       return NULL;
@@ -1538,7 +1538,7 @@ static PyObject *cmap_match_bfchar(PyObject *chars, const unsigned char *data,
   for (i = 0; i + 1 < charslen - 1; i += 2) {
     if (!(obj = PySequence_GetItem(chars, i)))
       return NULL;
-    if (PyString_AsStringAndSize((obj->ob_type == &PDFStringType) ?
+    if (PyBytes_AsStringAndSize((obj->ob_type == &PDFStringType) ?
           ((PDFString *)obj)->raw : obj, (char **)&codebytes, &codelen) < 0) {
       Py_DECREF(obj);
       return NULL;
@@ -1570,11 +1570,11 @@ static PyObject *cmap_match_bfchar(PyObject *chars, const unsigned char *data,
       *lenp = codelen;
       return obj2;
     }
-    if (obj->ob_type != &PDFStringType && obj->ob_type != &PyString_Type) {
+    if (obj->ob_type != &PDFStringType && obj->ob_type != &PyBytes_Type) {
       Py_DECREF(obj);
       continue;
     }
-    if (PyString_AsStringAndSize((obj->ob_type == &PDFStringType) ?
+    if (PyBytes_AsStringAndSize((obj->ob_type == &PDFStringType) ?
           ((PDFString *)obj)->raw : obj, (char **)&codebytes, &valuelen) < 0) {
       Py_DECREF(obj);
       return NULL;
@@ -1621,7 +1621,7 @@ static PyObject *decode_font_string_cmap(PyObject *cmap, const char *data,
       if (!(obj = PySequence_GetItem(item, -1)))
         goto error;
       if (obj->ob_type == &OperatorType) {
-        if (!(operator = PyString_AsString(obj)))
+        if (!(operator = PyBytes_AsString(obj)))
           goto error;
         Py_CLEAR(obj);
         if ((itemlen = PySequence_Length(item)) < 0)
@@ -1727,9 +1727,9 @@ static int text_append(PyObject *result, PyObject *args, Py_ssize_t argnum,
       goto error;
     goto ok;
   }
-  if (obj->ob_type != &PyString_Type && obj->ob_type != &PDFStringType)
+  if (obj->ob_type != &PyBytes_Type && obj->ob_type != &PDFStringType)
     goto ok; /* not a string type at all, ignore it */
-  if (PyString_AsStringAndSize((obj->ob_type == &PDFStringType) ?
+  if (PyBytes_AsStringAndSize((obj->ob_type == &PDFStringType) ?
         ((PDFString *)obj)->raw : obj, &data, &len) < 0)
     goto error;
   if (!(decoded = decode_font_string(font, data, len)))
@@ -1795,7 +1795,7 @@ static PyObject *page_get_text(Page *self, void *closure) {
           obj->ob_type->tp_name);
       goto error;
     }
-    if (!(operator = PyString_AsString(obj)))
+    if (!(operator = PyBytes_AsString(obj)))
       goto error;
     Py_CLEAR(obj);
     if (fonts && !strcmp(operator, "Tf")) {
@@ -1949,7 +1949,7 @@ static PyTypeObject PageType = {
 
 
 typedef struct {
-  PyIntObject intobj;
+  PyLongObject intobj;
 } Offset;
 
 
@@ -1998,7 +1998,7 @@ static PyTypeObject OffsetType = {
 
 
 typedef struct {
-  PyIntObject intobj;
+  PyLongObject intobj;
   long number;
   long index;
 } StreamReference;
@@ -2021,7 +2021,7 @@ static PyObject *streamreference_new(PyTypeObject *type, PyObject *args,
 
 
 static PyObject *streamreference_repr(StreamReference *self) {
-  return PyString_FromFormat("<StreamReference(%ld, %ld)>", self->number,
+  return PyBytes_FromFormat("<StreamReference(%ld, %ld)>", self->number,
       self->index);
 }
 
@@ -2084,7 +2084,7 @@ static PyObject *pdf_getxref(PDF *self, long number, long generation) {
   PyObject *numobj;
   PyObject *value;
 
-  if (!(numobj = PyInt_FromLong(generation)))
+  if (!(numobj = PyLong_FromLong(generation)))
     return NULL;
   dictobj = PyDict_GetItem(self->xref, numobj);
   Py_DECREF(numobj);
@@ -2092,7 +2092,7 @@ static PyObject *pdf_getxref(PDF *self, long number, long generation) {
     Py_INCREF(Py_None);
     return Py_None;
   }
-  if (!(numobj = PyInt_FromLong(number)))
+  if (!(numobj = PyLong_FromLong(number)))
     return NULL;
   value = PyDict_GetItem(dictobj, numobj);
   Py_DECREF(numobj);
@@ -2109,7 +2109,7 @@ static int pdf_setxref(PDF *self, long number, long generation,
   PyObject *numobj;
   int check;
 
-  if (!(numobj = PyInt_FromLong(generation)))
+  if (!(numobj = PyLong_FromLong(generation)))
     return 0;
   if (!(dictobj = PyDict_GetItem(self->xref, numobj))) {
     if (!(dictobj = PyDict_New())) {
@@ -2124,7 +2124,7 @@ static int pdf_setxref(PDF *self, long number, long generation,
     Py_DECREF(dictobj);
   }
   Py_DECREF(numobj);
-  if (!(numobj = PyInt_FromLong(number)))
+  if (!(numobj = PyLong_FromLong(number)))
     return 0;
   if (!overwrite) {
     if ((check = PyDict_Contains(dictobj, numobj)) < 0) {
@@ -2172,7 +2172,7 @@ static void indirectobject_dealloc(IndirectObject *self) {
   if (self->weakreflist)
     PyObject_ClearWeakRefs((PyObject *)self);
   indirectobject_clear(self);
-  self->ob_type->tp_free((PyObject *)self);
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 
@@ -2201,7 +2201,7 @@ static PyObject *indirectobject_new(PyTypeObject *type, PyObject *args,
 
 
 static PyObject *indirectobject_repr(IndirectObject *self) {
-  return PyString_FromFormat("<IndirectObject(%ld, %ld)>", self->number,
+  return PyBytes_FromFormat("<IndirectObject(%ld, %ld)>", self->number,
       self->generation);
 }
 
@@ -2260,7 +2260,7 @@ static PyObject *indirectobject_getObject(IndirectObject *self) {
     Py_DECREF(obj);
     if (!value)
       return NULL;
-    if (PyString_AsStringAndSize((value->ob_type == &PDFStringType) ?
+    if (PyBytes_AsStringAndSize((value->ob_type == &PDFStringType) ?
           ((PDFString *)value)->raw : value, &data, &len) < 0) {
       Py_DECREF(value);
       return NULL;
@@ -2306,7 +2306,7 @@ static PyObject *indirectobject_getObject(IndirectObject *self) {
     self->obj = obj;
     return obj;
   }
-  offset = PyInt_AS_LONG(obj);
+  offset = PyLong_AS_LONG(obj);
   Py_DECREF(obj);
   if (self->pdf->key) {
     if (!(md5obj = PyObject_CallObject(md5, NULL)))
@@ -2329,8 +2329,8 @@ static PyObject *indirectobject_getObject(IndirectObject *self) {
     if (!obj)
       return NULL;
     key = PySequence_GetSlice(obj, 0,
-        (PyString_GET_SIZE(self->pdf->key) >= 11) ? 16 :
-        (PyString_GET_SIZE(self->pdf->key) + 5));
+        (PyBytes_GET_SIZE(self->pdf->key) >= 11) ? 16 :
+        (PyBytes_GET_SIZE(self->pdf->key) + 5));
     Py_DECREF(obj);
     if (!key)
       return NULL;
@@ -2443,7 +2443,7 @@ static PyObject *unicode_fromstringandsize(const char *str, Py_ssize_t len) {
   PyObject *strobj;
   PyObject *uniobj;
 
-  if (!(strobj = PyString_FromStringAndSize(str, len)))
+  if (!(strobj = PyBytes_FromStringAndSize(str, len)))
     return NULL;
   uniobj = PyUnicode_FromEncodedObject(strobj, "utf8", "strict");
   Py_DECREF(strobj);
@@ -2459,7 +2459,7 @@ static PyObject *decode_string(const char *string, Py_ssize_t len,
   char *data;
   PDFString *strobj;
 
-  if (decryption_key && !PyString_Check(decryption_key)) {
+  if (decryption_key && !PyBytes_Check(decryption_key)) {
     PyErr_Format(baseerror, "decryption_key is a %s not a string",
         decryption_key->ob_type->tp_name);
     return NULL;
@@ -2469,10 +2469,10 @@ static PyObject *decode_string(const char *string, Py_ssize_t len,
     if (!(data = PyMem_Malloc(len)))
       return PyErr_NoMemory();
     memcpy(data, string, len);
-    rc4(PyString_AS_STRING(decryption_key),
-        PyString_GET_SIZE(decryption_key), data, len);
+    rc4(PyBytes_AS_STRING(decryption_key),
+        PyBytes_GET_SIZE(decryption_key), data, len);
   }
-  if (!(raw = PyString_FromStringAndSize(data, len))) {
+  if (!(raw = PyBytes_FromStringAndSize(data, len))) {
     if (decryption_key)
       PyMem_Free(data);
     return NULL;
@@ -2523,9 +2523,9 @@ static PyObject *process_filter(PDF *self, PyObject *value, PyObject *name,
   char *data;
   Py_ssize_t len;
 
-  if (!(filter = PyString_AsString(name)))
+  if (!(filter = PyBytes_AsString(name)))
     return pdf_error(self, NULL, "Invalid Filter name");
-  if (PyString_AsStringAndSize(value, &data, &len) < 0)
+  if (PyBytes_AsStringAndSize(value, &data, &len) < 0)
     return NULL;
   for (filterdecoder = filterdecoders; filterdecoder->name; filterdecoder++) {
     if (!strcmp(filterdecoder->name, filter)) {
@@ -2551,8 +2551,8 @@ static PyObject *expand_abbreviations(PyObject *key, PyObject *name,
   const char *keystr = NULL;
   const char *namestr;
 
-  if (!(!key || (keystr = PyString_AsString(key))) ||
-      !(namestr = PyString_AsString(name))) {
+  if (!(!key || (keystr = PyBytes_AsString(key))) ||
+      !(namestr = PyBytes_AsString(name))) {
     PyErr_Clear();
   } else {
     while (abbreviations->abbreviation) {
@@ -2638,7 +2638,7 @@ static PyObject *read_inline_image(PDF *self, const char **start,
       return NULL;
     }
     if (key->ob_type == &OperatorType) {
-      if (!(op = PyString_AsString(key))) {
+      if (!(op = PyBytes_AsString(key))) {
         Py_DECREF(key);
         Py_DECREF(dict);
         return NULL;
@@ -2721,7 +2721,7 @@ static PyObject *read_inline_image(PDF *self, const char **start,
             Py_DECREF(dict);
             return NULL;
           }
-          if (!(colorspace = PyString_AsString(obj))) {
+          if (!(colorspace = PyBytes_AsString(obj))) {
             Py_DECREF(obj);
             Py_DECREF(dict);
             return NULL;
@@ -2741,7 +2741,7 @@ static PyObject *read_inline_image(PDF *self, const char **start,
           return NULL;
         }
         imagelen = height * ((width * bitspercomponent * colors + 7) >> 3);
-        if (!(value = PyString_FromStringAndSize(cp, imagelen))) {
+        if (!(value = PyBytes_FromStringAndSize(cp, imagelen))) {
           Py_DECREF(dict);
           return NULL;
         }
@@ -2757,7 +2757,7 @@ static PyObject *read_inline_image(PDF *self, const char **start,
           parms = Py_None;
           Py_INCREF(Py_None);
         }
-        if (!(obj = PyString_FromStringAndSize(cp, end - cp))) {
+        if (!(obj = PyBytes_FromStringAndSize(cp, end - cp))) {
           Py_DECREF(parms);
           Py_DECREF(filter);
           Py_DECREF(dict);
@@ -2772,7 +2772,7 @@ static PyObject *read_inline_image(PDF *self, const char **start,
           return NULL;
         }
         Py_DECREF(value);
-        if (!(value = PyString_FromStringAndSize(cp, length))) {
+        if (!(value = PyBytes_FromStringAndSize(cp, length))) {
           Py_DECREF(dict);
           return NULL;
         }
@@ -2791,7 +2791,7 @@ static PyObject *read_inline_image(PDF *self, const char **start,
         Py_DECREF(value);
         Py_DECREF(dict);
       }
-      if (!(op = PyString_AsString(obj))) {
+      if (!(op = PyBytes_AsString(obj))) {
         Py_DECREF(obj);
         Py_DECREF(value);
         Py_DECREF(dict);
@@ -2932,7 +2932,7 @@ static PyObject *read_object(PDF *self, const char **start, const char *end,
       return obj;
     }
     if (read_integer(&cp, end, &intval)) { /* integer */
-      if (!(obj = PyInt_FromLong(intval)))
+      if (!(obj = PyLong_FromLong(intval)))
         return NULL;
       *start = cp;
       return obj;
@@ -3137,14 +3137,14 @@ static PyObject *read_object(PDF *self, const char **start, const char *end,
           Py_DECREF(dict);
           return NULL;
         }
-        if (!PyInt_Check(obj)) {
+        if (!PyLong_Check(obj)) {
           pdf_error(self, cp, "Stream Length is a %s not an integer",
               obj->ob_type->tp_name);
           Py_DECREF(obj);
           Py_DECREF(dict);
           return NULL;
         }
-        length = PyInt_AS_LONG(obj);
+        length = PyLong_AS_LONG(obj);
         Py_DECREF(obj);
         if (length < 0) {
           Py_DECREF(dict);
@@ -3443,7 +3443,7 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
           Py_DECREF(obj);
           return 0;
         }
-        if (!PyInt_Check(obj2)) {
+        if (!PyLong_Check(obj2)) {
           pdf_error(self, start + startxref,
               "XRef StreamObject W value is a %s not an integer",
               obj2->ob_type->tp_name);
@@ -3452,7 +3452,7 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
           Py_DECREF(obj);
           return 0;
         }
-        fields[i] = PyInt_AS_LONG(obj2);
+        fields[i] = PyLong_AS_LONG(obj2);
         Py_DECREF(obj2);
         if (fields[i] < 0 || fields[i] > 4 || (i == 1 && fields[i] < 1)) {
           pdf_error(self, start + startxref,
@@ -3470,7 +3470,7 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
       }
       value = (obj2->ob_type == &PDFStringType) ?
         ((PDFString *)obj2)->raw : obj2;
-      if (!PyString_Check(value)) {
+      if (!PyBytes_Check(value)) {
         pdf_error(self, start + startxref,
             "XRef StreamObject content is a %s not a string",
             value->ob_type->tp_name);
@@ -3478,7 +3478,7 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
         Py_DECREF(obj);
         return 0;
       }
-      if (PyString_AsStringAndSize(obj2, &data, &len) < 0) {
+      if (PyBytes_AsStringAndSize(obj2, &data, &len) < 0) {
         Py_DECREF(obj2);
         Py_DECREF(obj);
         return 0;
@@ -3520,7 +3520,7 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
             Py_DECREF(obj);
             return 0;
           }
-          if (!PyInt_Check(obj2)) {
+          if (!PyLong_Check(obj2)) {
             pdf_error(self, cp,
                 "XRef StreamObject Index value is a %s not an integer",
                 obj2->ob_type->tp_name);
@@ -3529,14 +3529,14 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
             Py_DECREF(obj);
             return 0;
           }
-          num = PyInt_AS_LONG(obj2);
+          num = PyLong_AS_LONG(obj2);
           Py_DECREF(obj2);
           if (!(obj2 = PySequence_GetItem(index, indexpos + 1))) {
             Py_DECREF(index);
             Py_DECREF(obj);
             return 0;
           }
-          if (!PyInt_Check(obj2)) {
+          if (!PyLong_Check(obj2)) {
             pdf_error(self, cp,
                 "XRef StreamObject Index value is a %s not an integer",
                 obj2->ob_type->tp_name);
@@ -3545,7 +3545,7 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
             Py_DECREF(obj);
             return 0;
           }
-          size = PyInt_AS_LONG(obj2);
+          size = PyLong_AS_LONG(obj2);
           Py_DECREF(obj2);
         }
         while (size > 0 && cp2 + rowlen <= data + len) {
@@ -3617,13 +3617,13 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
         return 0;
       }
       if (cmp) {
-        if (!PyInt_Check(value)) {
+        if (!PyLong_Check(value)) {
           pdf_error(self, cp, "Trailer Prev value is a %s not an integer",
               value->ob_type->tp_name);
           Py_DECREF(obj);
           return 0;
         }
-        startxref = PyInt_AS_LONG(value);
+        startxref = PyLong_AS_LONG(value);
       }
       if (!PyDict_GetItem(self->trailer, key)) {
         if (PyDict_SetItem(self->trailer, key, value)) {
@@ -3670,7 +3670,7 @@ static void pdf_dealloc(PDF *self) {
   if (self->weakreflist)
     PyObject_ClearWeakRefs((PyObject *)self);
   pdf_clear(self);
-  self->ob_type->tp_free((PyObject *)self);
+  Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 
@@ -3712,7 +3712,7 @@ static PyObject *check_password(PDF *self, PyObject *encrypt,
     char *str;
     Py_ssize_t str_len;
 
-    if (PyString_AsStringAndSize(password, &str, &str_len) < 0)
+    if (PyBytes_AsStringAndSize(password, &str, &str_len) < 0)
       return NULL;
     for (; len < 32 && len < str_len; len++)
       passbuf[len] = str[len];
@@ -3792,7 +3792,7 @@ static PyObject *check_password(PDF *self, PyObject *encrypt,
   }
   obj2 = PySequence_GetSlice(obj, 0, keylen);
   Py_DECREF(obj);
-  keystr = PyString_AS_STRING(obj2);
+  keystr = PyBytes_AS_STRING(obj2);
   if (rev >= 3) {
     if (!(md5obj = PyObject_CallObject(md5, NULL))) {
       Py_DECREF(idobj);
@@ -3813,8 +3813,8 @@ static PyObject *check_password(PDF *self, PyObject *encrypt,
       Py_DECREF(obj2);
       return NULL;
     }
-    memcpy(passbuf, PyString_AS_STRING(obj), 16);
-    rc4(keystr, PyString_GET_SIZE(obj2), passbuf, 16);
+    memcpy(passbuf, PyBytes_AS_STRING(obj), 16);
+    rc4(keystr, PyBytes_GET_SIZE(obj2), passbuf, 16);
     Py_DECREF(obj);
     for (i = 1; i <= 19; i++) {
       char keybuf[32];
@@ -3825,7 +3825,7 @@ static PyObject *check_password(PDF *self, PyObject *encrypt,
     ulen = 16;
   } else {
     memcpy(passbuf, decrypt_padding, 32);
-    rc4(keystr, PyString_GET_SIZE(obj2), passbuf, 32);
+    rc4(keystr, PyBytes_GET_SIZE(obj2), passbuf, 32);
     ulen = 32;
   }
   Py_DECREF(idobj);
@@ -3834,11 +3834,11 @@ static PyObject *check_password(PDF *self, PyObject *encrypt,
     return NULL;
   }
   if (obj->ob_type == &PDFStringType) {
-    ok = PyString_GET_SIZE(((PDFString *)obj)->raw) >= ulen &&
-        !memcmp(PyString_AS_STRING(((PDFString *)obj)->raw), passbuf, ulen);
-  } else if (PyString_Check(obj)) {
-    ok = PyString_GET_SIZE(obj) >= ulen &&
-      !memcmp(PyString_AS_STRING(obj), passbuf, ulen);
+    ok = PyBytes_GET_SIZE(((PDFString *)obj)->raw) >= ulen &&
+        !memcmp(PyBytes_AS_STRING(((PDFString *)obj)->raw), passbuf, ulen);
+  } else if (PyBytes_Check(obj)) {
+    ok = PyBytes_GET_SIZE(obj) >= ulen &&
+      !memcmp(PyBytes_AS_STRING(obj), passbuf, ulen);
   } else {
     pdf_error(self, NULL, "Encrypt U value is a %s not a string",
         obj->ob_type->tp_name);
@@ -3877,7 +3877,7 @@ static int decrypt(PDF *self, PyObject *password) {
     Py_DECREF(encrypt);
     return 0;
   }
-  if (!PyString_Check(value) && !PyUnicode_Check(value)) {
+  if (!PyBytes_Check(value) && !PyUnicode_Check(value)) {
     pdf_error(self, NULL, "Trailer Filter value is a %s not a string",
         value->ob_type->tp_name);
     Py_DECREF(value);
@@ -3894,7 +3894,7 @@ static int decrypt(PDF *self, PyObject *password) {
   if (cmp <= 0) {
     if (cmp == 0)
       PyErr_Format(notsupportederror, "Unsupported Encryption Filter '%s'",
-          PyString_AsString(value));
+          PyBytes_AsString(value));
     Py_DECREF(value);
     Py_DECREF(encrypt);
     return 0;
@@ -3904,14 +3904,14 @@ static int decrypt(PDF *self, PyObject *password) {
     Py_DECREF(encrypt);
     return 0;
   }
-  if (!PyInt_Check(value)) {
+  if (!PyLong_Check(value)) {
     pdf_error(self, NULL, "Encrypt V value is a %s not a number",
         value->ob_type->tp_name);
     Py_DECREF(value);
     Py_DECREF(encrypt);
     return 0;
   }
-  v = PyInt_AS_LONG(value);
+  v = PyLong_AS_LONG(value);
   Py_DECREF(value);
   if (v != 1 && v != 2) {
     PyErr_Format(notsupportederror, "Encrypt V value of %ld is not supported",
@@ -4082,7 +4082,7 @@ PyObject *ascii85decode(PDF *self, const char *data, Py_ssize_t len,
       return PyErr_NoMemory();
   }
 
-  result = PyString_FromStringAndSize(output, op - output);
+  result = PyBytes_FromStringAndSize(output, op - output);
   PyMem_Free(output);
   if (usedbytes)
     *usedbytes = cp - data;
@@ -4133,7 +4133,7 @@ PyObject *asciihexdecode(PDF *self, const char *data, Py_ssize_t len,
     op[-1] |= digit;
   }
 
-  result = PyString_FromStringAndSize(output, op - output);
+  result = PyBytes_FromStringAndSize(output, op - output);
   PyMem_Free(output);
   if (usedbytes)
     *usedbytes = cp - data;
@@ -4189,7 +4189,7 @@ PyObject *do_predictor(PyObject *input, PyObject *parms) {
     if (!get_intval(parms, "Columns", &columns))
       return NULL;
 
-  if (PyString_AsStringAndSize(input, (char **)&data, &len) < 0)
+  if (PyBytes_AsStringAndSize(input, (char **)&data, &len) < 0)
     return NULL;
   if (!(output = PyMem_Malloc(len)))
     return PyErr_NoMemory();
@@ -4245,7 +4245,7 @@ PyObject *do_predictor(PyObject *input, PyObject *parms) {
     prevrow = thisrow;
   }
 
-  result = PyString_FromStringAndSize((char *)output, op - output);
+  result = PyBytes_FromStringAndSize((char *)output, op - output);
   PyMem_Free(output);
   return result;
 }
@@ -4469,7 +4469,7 @@ static PyObject *pycpdf_refs(PyObject *self, PyObject *args) {
 
   if (!PyArg_ParseTuple(args, "O:refs", &obj))
     return NULL;
-  return PyInt_FromLong((long)obj->ob_refcnt - 1);
+  return PyLong_FromLong((long)obj->ob_refcnt - 1);
 }
 
 
@@ -6742,148 +6742,183 @@ static const char *raw_unicode_translations[] = {
 };
 
 
+#if PY_MAJOR_VERSION >= 3
+
+static int pycpdf_traverse(PyObject *m, visitproc visit, void *arg) {
+	/* Py_VISIT(GETSTATE(m)->baseerror); */
+	return 0;
+}
+
+static int pycpdf_clear(PyObject *m) {
+	/* Py_CLEAR(GETSTATE(m)->error); */
+	return 0;
+}
+
+static struct PyModuleDef moduledef = {
+	PyModuleDef_HEAD_INIT,
+	"pycpdf",
+	pycpdf_doc,
+	-1,
+	pycpdf_methods,
+	NULL,
+	pycpdf_traverse,
+	pycpdf_clear,
+	NULL
+};
+
+#endif
+
+#if PY_MAJOR_VERSION >= 3
+PyMODINIT_FUNC PyInit_pycpdf(void) {
+#else
 PyMODINIT_FUNC initpycpdf(void) {
-  PyObject *m;
-  PyObject *othermod;
+#endif
+  PyObject *m = NULL;
+  PyObject *othermod = NULL;
   const char **glyphname;
   const char **glyphvalue;
-  PyObject *obj;
-  PyObject *obj2;
+  PyObject *obj = NULL;
+  PyObject *obj2 = NULL;
   int byteorder;
   const unsigned char *translation;
 
+#if PY_MAJOR_VERSION >= 3
+	if (!(m = PyModule_Create(&moduledef)))
+		goto error;
+#else
+  if (!(m = Py_InitModule3("pycpdf", pycpdf_methods, pycpdf_doc)))
+    goto error;
+#endif
+
   if (!(othermod = PyImport_ImportModule("hashlib")))
-    return;
+    goto error;
   md5 = PyObject_GetAttrString(othermod, "md5");
   Py_DECREF(othermod);
   if (!md5)
-    return;
+    goto error;
 
   if (!(othermod = PyImport_ImportModule("zlib")))
-    return;
+    goto error;
   decompressobj = PyObject_GetAttrString(othermod, "decompressobj");
   Py_DECREF(othermod);
   if (!decompressobj)
-    return;
+    goto error;
 
   if (!(string_prev = PyUnicode_DecodeASCII("Prev", 4, "strict")))
-    return;
+    goto error;
   if (!(string_page = PyUnicode_DecodeASCII("Page", 4, "strict")))
-    return;
+    goto error;
   if (!(string_emptystring = PyUnicode_DecodeASCII("", 0, "strict")))
-    return;
+    goto error;
   if (!(string_newline = PyUnicode_DecodeASCII("\n", 1, "strict")))
-    return;
+    goto error;
   byteorder = -1;
   if (!(string_unknown = PyUnicode_DecodeUTF16("\xfe\xff", 2, "strict",
           &byteorder)))
-    return;
-  if (!(bytestr_emptystring = PyString_FromString("")))
-    return;
+    goto error;
+  if (!(bytestr_emptystring = PyBytes_FromString("")))
+    goto error;
 
   NameType.tp_base = &PyUnicode_Type;
   if (PyType_Ready(&NameType) < 0)
-    return;
+    goto error;
   OperatorType.tp_base = &PyUnicode_Type;
   if (PyType_Ready(&OperatorType) < 0)
-    return;
+    goto error;
   PDFStringType.tp_base = &PyUnicode_Type;
   if (PyType_Ready(&PDFStringType) < 0)
-    return;
+    goto error;
   ArrayType.tp_base = &PyList_Type;
   ArrayType.tp_traverse = PyList_Type.tp_traverse;
   ArrayType.tp_clear = PyList_Type.tp_clear;
   if (PyType_Ready(&ArrayType) < 0)
-    return;
+    goto error;
   if (PyType_Ready(&ArrayIteratorType) < 0)
-    return;
+    goto error;
   DictionaryType.tp_base = &PyDict_Type;
   DictionaryType.tp_traverse = PyDict_Type.tp_traverse;
   DictionaryType.tp_clear = PyDict_Type.tp_clear;
   if (PyType_Ready(&DictionaryType) < 0)
-    return;
+    goto error;
   StreamObjectType.tp_base = &DictionaryType;
   if (PyType_Ready(&StreamObjectType) < 0)
-    return;
+    goto error;
   PageType.tp_base = &DictionaryType;
   if (PyType_Ready(&PageType) < 0)
-    return;
-  OffsetType.tp_base = &PyInt_Type;
+    goto error;
+  OffsetType.tp_base = &PyLong_Type;
   if (PyType_Ready(&OffsetType) < 0)
-    return;
+    goto error;
   if (PyType_Ready(&StreamReferenceType) < 0)
-    return;
+    goto error;
   if (PyType_Ready(&IndirectObjectType) < 0)
-    return;
+    goto error;
   if (PyType_Ready(&PDFType) < 0)
-    return;
+    goto error;
 
   if (!(name_inlineimage = PyObject_CallFunction((PyObject *)&NameType,
           "s", "InlineImage")))
-    return;
-
-  if (!(m = Py_InitModule3("pycpdf", pycpdf_methods, pycpdf_doc)))
-    return;
+    goto error;
 
   if (!baseerror)
     if (!(baseerror = PyErr_NewException("pycpdf.Error", NULL, NULL)))
-      return;
+      goto error;
   if (!pdferror)
     if (!(pdferror = PyErr_NewException("pycpdf.FormatError", baseerror,
             NULL)))
-      return;
+      goto error;
   if (!notsupportederror)
     if (!(notsupportederror = PyErr_NewException("pycpdf.NotSupportedError",
             baseerror, NULL)))
-      return;
+      goto error;
   if (!badpassworderror)
     if (!(badpassworderror = PyErr_NewException("pycpdf.BadPasswordError",
             baseerror, NULL)))
-      return;
+      goto error;
   if (!(encodings = PyDict_New()))
-    return;
+    goto error;
   byteorder = -1;
   if (!(pdfdocencoding = PyUnicode_DecodeUTF16(raw_pdfdocencoding, 512,
           "strict", &byteorder)) || PyMapping_SetItemString(encodings,
           "PDFDocEncoding", pdfdocencoding) < 0)
-    return;
+    goto error;
   byteorder = -1;
   if (!(obj = PyUnicode_DecodeUTF16(raw_standardencoding, 512,
           "strict", &byteorder)) || PyMapping_SetItemString(encodings,
           "StandardEncoding", obj) < 0)
-    return;
+    goto error;
   Py_DECREF(obj);
   byteorder = -1;
   if (!(obj = PyUnicode_DecodeUTF16(raw_macromanencoding, 512,
           "strict", &byteorder)) || PyMapping_SetItemString(encodings,
           "MacRomanEncoding", obj) < 0)
-    return;
+    goto error;
   Py_DECREF(obj);
   byteorder = -1;
   if (!(obj = PyUnicode_DecodeUTF16(raw_winansiencoding, 512,
           "strict", &byteorder)) || PyMapping_SetItemString(encodings,
           "WinAnsiEncoding", obj) < 0)
-    return;
+    goto error;
   Py_DECREF(obj);
   byteorder = -1;
   if (!(obj = PyUnicode_DecodeUTF16(raw_macexpertencoding, 512,
           "strict", &byteorder)) || PyMapping_SetItemString(encodings,
           "MacExpertEncoding", obj) < 0)
-    return;
+    goto error;
   Py_DECREF(obj);
   Py_INCREF(encodings);
   PyModule_AddObject(m, "encodings", encodings);
   if (!(glyphlist = PyDict_New()))
-    return;
+    goto error;
   glyphname = glyph_names;
   glyphvalue = glyph_values;
   while (*glyphname) {
     byteorder = -1;
     if (!(obj = PyUnicode_DecodeUTF16((*glyphvalue) + 1, (*glyphvalue)[0],
             "strict", &byteorder)))
-      return;
+      goto error;
     if (PyMapping_SetItemString(glyphlist, (char *)*glyphname, obj) < 0)
-      return;
+      goto error;
     Py_DECREF(obj);
     glyphname++;
     glyphvalue++;
@@ -6891,22 +6926,22 @@ PyMODINIT_FUNC initpycpdf(void) {
   Py_INCREF(glyphlist);
   PyModule_AddObject(m, "glyphlist", glyphlist);
   if (!(unicode_translations = PyDict_New()))
-    return;
+    goto error;
   for (glyphname = raw_unicode_translations; *glyphname; glyphname++) {
     translation = (const unsigned char *)*glyphname;
     byteorder = 1;
-    if (!(obj = PyInt_FromLong(translation[0] << 8 | translation[1])))
-      return;
+    if (!(obj = PyLong_FromLong(translation[0] << 8 | translation[1])))
+      goto error;
     if (!translation[2]) {
       Py_INCREF(Py_None);
       obj2 = Py_None;
     } else {
       if (!(obj2 = PyUnicode_DecodeASCII((char *)translation + 2,
               strlen((char *)translation + 2), "strict")))
-        return;
+        goto error;
     }
     if (PyObject_SetItem(unicode_translations, obj, obj2) < 0)
-      return;
+      goto error;
     Py_DECREF(obj2);
     Py_DECREF(obj);
   }
@@ -6942,4 +6977,18 @@ PyMODINIT_FUNC initpycpdf(void) {
   PyModule_AddObject(m, "IndirectObject", (PyObject *)&IndirectObjectType);
   Py_INCREF(&PDFType);
   PyModule_AddObject(m, "PDF", (PyObject *)&PDFType);
+#if PY_MAJOR_VERSION >= 3
+	return m;
+#else
+	return;
+#endif
+error:
+	Py_XDECREF(othermod);
+	Py_XDECREF(obj);
+	Py_XDECREF(obj2);
+#if PY_MAJOR_VERSION >= 3
+	return NULL;
+#else
+	return;
+#endif
 }
