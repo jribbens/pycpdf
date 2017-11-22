@@ -23,4 +23,5 @@ setup(
     ext_modules=[
         Extension('pycpdf', ['pycpdfmodule.c']),
     ],
+    test_suite='tests.py',
 )
