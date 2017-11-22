@@ -5,8 +5,18 @@
 
 #if PY_MAJOR_VERSION >= 3
 #define FORMAT_BYTES "y#"
+#define NUM_OBJ PyLongObject
+#define NUM_TYPE PyLong_Type
+#define NUM_CHECK PyLong_Check
+#define NUM_ASLONG PyLong_AsLong
+#define NUM_FROMLONG PyLong_FromLong
 #else
 #define FORMAT_BYTES "s#"
+#define NUM_OBJ PyIntObject
+#define NUM_TYPE PyInt_Type
+#define NUM_CHECK PyInt_Check
+#define NUM_ASLONG PyInt_AS_LONG
+#define NUM_FROMLONG PyInt_FromLong
 #endif
 
 
@@ -814,13 +824,13 @@ static int get_intval(PyObject *dict, const char *key, long *retval) {
 
   if (!(obj = PyMapping_GetItemString(dict, (char *)key)))
     return 0;
-  if (!PyLong_Check(obj)) {
+  if (!NUM_CHECK(obj)) {
     pdf_error(NULL, NULL, "Dictionary %s value is a %s not an integer", key,
         obj->ob_type->tp_name);
     Py_DECREF(obj);
     return 0;
   }
-  *retval = PyLong_AsLong(obj);
+  *retval = NUM_ASLONG(obj);
   Py_DECREF(obj);
   return (*retval != -1 || !PyErr_Occurred());
 }
@@ -1289,8 +1299,8 @@ static PyObject *decode_font_string_encoding(PyObject *encoding,
     if (!(iter = PyObject_GetIter(differences)))
       goto error;
     while ((item = PyIter_Next(iter))) {
-      if (PyLong_Check(item)) {
-        charno = PyLong_AsLong(item);
+      if (NUM_CHECK(item)) {
+        charno = NUM_ASLONG(item);
       } else if (PyBytes_Check(item) || PyUnicode_Check(item)) {
         if (charno == *data) { /* found an entry for our byte value */
           if (!(obj = PyObject_GetItem(glyphlist, item))) {
@@ -1970,7 +1980,7 @@ static PyTypeObject PageType = {
 
 
 typedef struct {
-  PyLongObject intobj;
+  NUM_OBJ intobj;
 } Offset;
 
 
@@ -2019,7 +2029,7 @@ static PyTypeObject OffsetType = {
 
 
 typedef struct {
-  PyLongObject intobj;
+  NUM_OBJ intobj;
   long number;
   long index;
 } StreamReference;
@@ -2105,7 +2115,7 @@ static PyObject *pdf_getxref(PDF *self, long number, long generation) {
   PyObject *numobj;
   PyObject *value;
 
-  if (!(numobj = PyLong_FromLong(generation)))
+  if (!(numobj = NUM_FROMLONG(generation)))
     return NULL;
   dictobj = PyDict_GetItem(self->xref, numobj);
   Py_DECREF(numobj);
@@ -2113,7 +2123,7 @@ static PyObject *pdf_getxref(PDF *self, long number, long generation) {
     Py_INCREF(Py_None);
     return Py_None;
   }
-  if (!(numobj = PyLong_FromLong(number)))
+  if (!(numobj = NUM_FROMLONG(number)))
     return NULL;
   value = PyDict_GetItem(dictobj, numobj);
   Py_DECREF(numobj);
@@ -2129,7 +2139,7 @@ static int pdf_setxref(PDF *self, long number, long generation,
   PyObject *dictobj;
   PyObject *numobj;
 
-  if (!(numobj = PyLong_FromLong(generation)))
+  if (!(numobj = NUM_FROMLONG(generation)))
     return 0;
   if (!(dictobj = PyDict_GetItem(self->xref, numobj))) {
     if (!(dictobj = PyDict_New())) {
@@ -2144,7 +2154,7 @@ static int pdf_setxref(PDF *self, long number, long generation,
     Py_DECREF(dictobj);
   }
   Py_DECREF(numobj);
-  if (!(numobj = PyLong_FromLong(number)))
+  if (!(numobj = NUM_FROMLONG(number)))
     return 0;
   if (!overwrite) {
     int check;
@@ -2325,7 +2335,7 @@ static PyObject *indirectobject_getObject(IndirectObject *self) {
     self->obj = obj;
     return obj;
   }
-  offset = PyLong_AsLong(obj);
+  offset = NUM_ASLONG(obj);
   Py_DECREF(obj);
   if (self->pdf->key) {
     PyObject *md5obj;
@@ -2975,7 +2985,7 @@ static PyObject *read_object(PDF *self, const char **start, const char *end,
       return obj;
     }
     if (read_integer(&cp, end, &intval)) { /* integer */
-      if (!(obj = PyLong_FromLong(intval)))
+      if (!(obj = NUM_FROMLONG(intval)))
         return NULL;
       *start = cp;
       return obj;
@@ -3181,14 +3191,14 @@ static PyObject *read_object(PDF *self, const char **start, const char *end,
           Py_DECREF(dict);
           return NULL;
         }
-        if (!PyLong_Check(obj)) {
+        if (!NUM_CHECK(obj)) {
           pdf_error(self, cp, "Stream Length is a %s not an integer",
               obj->ob_type->tp_name);
           Py_DECREF(obj);
           Py_DECREF(dict);
           return NULL;
         }
-        length = PyLong_AsLong(obj);
+        length = NUM_ASLONG(obj);
         Py_DECREF(obj);
         if (length < 0) {
           Py_DECREF(dict);
@@ -3488,7 +3498,7 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
           Py_DECREF(obj);
           return 0;
         }
-        if (!PyLong_Check(obj2)) {
+        if (!NUM_CHECK(obj2)) {
           pdf_error(self, start + startxref,
               "XRef StreamObject W value is a %s not an integer",
               obj2->ob_type->tp_name);
@@ -3497,7 +3507,7 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
           Py_DECREF(obj);
           return 0;
         }
-        fields[i] = PyLong_AsLong(obj2);
+        fields[i] = NUM_ASLONG(obj2);
         Py_DECREF(obj2);
         if (fields[i] < 0 || fields[i] > 4 || (i == 1 && fields[i] < 1)) {
           pdf_error(self, start + startxref,
@@ -3565,7 +3575,7 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
             Py_DECREF(obj);
             return 0;
           }
-          if (!PyLong_Check(obj2)) {
+          if (!NUM_CHECK(obj2)) {
             pdf_error(self, cp,
                 "XRef StreamObject Index value is a %s not an integer",
                 obj2->ob_type->tp_name);
@@ -3574,14 +3584,14 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
             Py_DECREF(obj);
             return 0;
           }
-          num = PyLong_AsLong(obj2);
+          num = NUM_ASLONG(obj2);
           Py_DECREF(obj2);
           if (!(obj2 = PySequence_GetItem(index, indexpos + 1))) {
             Py_DECREF(index);
             Py_DECREF(obj);
             return 0;
           }
-          if (!PyLong_Check(obj2)) {
+          if (!NUM_CHECK(obj2)) {
             pdf_error(self, cp,
                 "XRef StreamObject Index value is a %s not an integer",
                 obj2->ob_type->tp_name);
@@ -3590,7 +3600,7 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
             Py_DECREF(obj);
             return 0;
           }
-          size = PyLong_AsLong(obj2);
+          size = NUM_ASLONG(obj2);
           Py_DECREF(obj2);
         }
         while (size > 0 && cp2 + rowlen <= data + len) {
@@ -3662,13 +3672,13 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
         return 0;
       }
       if (cmp) {
-        if (!PyLong_Check(value)) {
+        if (!NUM_CHECK(value)) {
           pdf_error(self, cp, "Trailer Prev value is a %s not an integer",
               value->ob_type->tp_name);
           Py_DECREF(obj);
           return 0;
         }
-        startxref = PyLong_AsLong(value);
+        startxref = NUM_ASLONG(value);
       }
       if (!PyDict_GetItem(self->trailer, key)) {
         if (PyDict_SetItem(self->trailer, key, value)) {
@@ -3955,14 +3965,14 @@ static int decrypt(PDF *self, PyObject *password) {
     Py_DECREF(encrypt);
     return 0;
   }
-  if (!PyLong_Check(value)) {
+  if (!NUM_CHECK(value)) {
     pdf_error(self, NULL, "Encrypt V value is a %s not a number",
         value->ob_type->tp_name);
     Py_DECREF(value);
     Py_DECREF(encrypt);
     return 0;
   }
-  v = PyLong_AsLong(value);
+  v = NUM_ASLONG(value);
   Py_DECREF(value);
   if (v != 1 && v != 2) {
     PyErr_Format(notsupportederror, "Encrypt V value of %ld is not supported",
@@ -4528,7 +4538,7 @@ static PyObject *pycpdf_refs(PyObject *self, PyObject *args) {
 
   if (!PyArg_ParseTuple(args, "O:refs", &obj))
     return NULL;
-  return PyLong_FromLong((long)obj->ob_refcnt - 1);
+  return NUM_FROMLONG((long)obj->ob_refcnt - 1);
 }
 
 
@@ -6906,7 +6916,7 @@ PyMODINIT_FUNC initpycpdf(void) {
   PageType.tp_base = &DictionaryType;
   if (PyType_Ready(&PageType) < 0)
     goto error;
-  OffsetType.tp_base = &PyLong_Type;
+  OffsetType.tp_base = &NUM_TYPE;
   if (PyType_Ready(&OffsetType) < 0)
     goto error;
   if (PyType_Ready(&StreamReferenceType) < 0)
@@ -6990,7 +7000,7 @@ PyMODINIT_FUNC initpycpdf(void) {
   for (glyphname = raw_unicode_translations; *glyphname; glyphname++) {
     translation = (const unsigned char *)*glyphname;
     byteorder = 1;
-    if (!(obj = PyLong_FromLong(translation[0] << 8 | translation[1])))
+    if (!(obj = NUM_FROMLONG(translation[0] << 8 | translation[1])))
       goto error;
     if (!translation[2]) {
       Py_INCREF(Py_None);
