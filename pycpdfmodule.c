@@ -1,4 +1,5 @@
 #define PY_SSIZE_T_CLEAN
+#include <stddef.h>
 #include "Python.h"
 #include "structmember.h"
 
@@ -330,7 +331,7 @@ static const char *previous_line(const char *pos, const char **eol,
 static int read_integer(const char **start, const char *end, long *retval) {
   const char *cp = *start;
   char digits[32];
-  int len;
+  size_t len;
 
   if (cp >= end)
     return 0;
@@ -393,7 +394,7 @@ static int read_twointegers(const char **start, const char *end, long *num1p,
 static int read_float(const char **start, const char *end, double *retval) {
   const char *cp = *start;
   char digits[64];
-  int len;
+  size_t len;
 
   for (len = 0; len < sizeof(digits) - 1 && cp < end &&
       ((*cp >= '0' && *cp <= '9') || *cp == '+' || *cp == '-' || *cp == '.');
