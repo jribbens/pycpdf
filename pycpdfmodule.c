@@ -2,6 +2,12 @@
 #include "Python.h"
 #include "structmember.h"
 
+#if PY_MAJOR_VERSION >= 3
+#define FORMAT_BYTES "y#"
+#else
+#define FORMAT_BYTES "s#"
+#endif
+
 
 static PyObject *baseerror = NULL;
 static PyObject *pdferror = NULL;
@@ -208,7 +214,8 @@ static PyTypeObject PDFStringType = {
 static int md5update(PyObject *md5obj, const char *data, Py_ssize_t length) {
   PyObject *obj;
 
-  if (!(obj = PyObject_CallMethod(md5obj, "update", "s#", data, length)))
+  if (!(obj = PyObject_CallMethod(md5obj, "update", FORMAT_BYTES, data,
+          length)))
     return 0;
   Py_DECREF(obj);
   return 1;
@@ -1601,6 +1608,7 @@ static PyObject *cmap_match_bfchar(PyObject *chars, const unsigned char *data,
 static PyObject *decode_font_string_cmap(PyObject *cmap, const char *data,
     Py_ssize_t len) {
   PyObject *obj = NULL;
+  PyObject *operatorobj = NULL;
   PyObject *cmapcontents = NULL;
   PyObject *out = NULL;
   PyObject *iter = NULL;
@@ -1625,9 +1633,10 @@ static PyObject *decode_font_string_cmap(PyObject *cmap, const char *data,
       if (!(obj = PySequence_GetItem(item, -1)))
         goto error;
       if (obj->ob_type == &OperatorType) {
-        if (!(operator = PyBytes_AsString(obj)))
+        if (!(operatorobj = PyUnicode_AsASCIIString(obj)))
           goto error;
         Py_CLEAR(obj);
+        operator = PyBytes_AS_STRING(operatorobj);
         if ((itemlen = PySequence_Length(item)) < 0)
           goto error;
         if (!strcmp(operator, "endbfchar")) {
@@ -1655,6 +1664,7 @@ static PyObject *decode_font_string_cmap(PyObject *cmap, const char *data,
           }
           Py_CLEAR(obj);
         }
+        Py_CLEAR(operatorobj);
       } else {
         Py_CLEAR(obj);
       }
@@ -1672,6 +1682,7 @@ static PyObject *decode_font_string_cmap(PyObject *cmap, const char *data,
 error:
   Py_XDECREF(out);
   Py_XDECREF(obj);
+  Py_XDECREF(operatorobj);
   Py_XDECREF(iter);
   Py_XDECREF(item);
   Py_XDECREF(cmapcontents);
@@ -1760,6 +1771,7 @@ error:
 static PyObject *page_get_text(Page *self, void *closure) {
   PyObject *iter = NULL;
   PyObject *entry = NULL;
+  PyObject *operatorobj = NULL;
   PyObject *obj = NULL;
   PyObject *result = NULL;
   PyObject *fonts = NULL;
@@ -1800,9 +1812,10 @@ static PyObject *page_get_text(Page *self, void *closure) {
           obj->ob_type->tp_name);
       goto error;
     }
-    if (!(operator = PyBytes_AsString(obj)))
+    if (!(operatorobj = PyUnicode_AsASCIIString(obj)))
       goto error;
     Py_CLEAR(obj);
+    operator = PyBytes_AS_STRING(operatorobj);
     if (fonts && !strcmp(operator, "Tf")) {
       Py_CLEAR(font);
       if (!(obj = PySequence_GetItem(entry, 0)))
@@ -1845,6 +1858,7 @@ static PyObject *page_get_text(Page *self, void *closure) {
       Py_CLEAR(obj);
     }
     Py_CLEAR(entry);
+    Py_CLEAR(operatorobj);
   }
   Py_CLEAR(iter);
   if (PyErr_Occurred())
@@ -1860,6 +1874,7 @@ error:
   Py_XDECREF(iter);
   Py_XDECREF(entry);
   Py_XDECREF(obj);
+  Py_XDECREF(operatorobj);
   Py_XDECREF(result);
   Py_XDECREF(fonts);
   Py_XDECREF(font);
@@ -2523,24 +2538,36 @@ static filterdecoder filterdecoders[];
 
 static PyObject *process_filter(PDF *self, PyObject *value, PyObject *name,
     PyObject *parms, long *usedbytes) {
-  const char *filter;
+  PyObject *filter;
+  PyObject *ret;
   filterdecoder *filterdecoder;
   char *data;
   Py_ssize_t len;
 
-  if (!(filter = PyBytes_AsString(name)))
-    return NULL; //pdf_error(self, NULL, "Invalid Filter name");
-  if (PyBytes_AsStringAndSize(value, &data, &len) < 0)
+  if (name->ob_type != &NameType)
+    return pdf_error(self, NULL, "Filter name is a %s not a pycpdf.Name",
+        name->ob_type->tp_name);
+  if (!(filter = PyUnicode_AsASCIIString(name)))
+    return pdf_error(self, NULL, "Invalid Filter name");
+  if (PyBytes_AsStringAndSize(value, &data, &len) < 0) {
+    Py_DECREF(filter);
     return NULL;
+  }
   for (filterdecoder = filterdecoders; filterdecoder->name; filterdecoder++) {
-    if (!strcmp(filterdecoder->name, filter)) {
-      if (filterdecoder->handler)
-        return filterdecoder->handler(self, data, len, parms, usedbytes);
-      PyErr_Format(notsupportederror, "Filter %s is not supported", filter);
-      return NULL;
+    if (!strcmp(filterdecoder->name, PyBytes_AS_STRING(filter))) {
+      if (!filterdecoder->handler) {
+        PyErr_Format(notsupportederror, "Filter %s is not supported",
+            PyBytes_AS_STRING(filter));
+        Py_DECREF(filter);
+        return NULL;
+      }
+      Py_DECREF(filter);
+      return filterdecoder->handler(self, data, len, parms, usedbytes);
     }
   }
-  return pdf_error(self, NULL, "Unknown Filter %s", filter);
+  ret = pdf_error(self, NULL, "Unknown Filter %s", PyBytes_AS_STRING(filter));
+  Py_DECREF(filter);
+  return ret;
 }
 
 
@@ -2619,7 +2646,6 @@ static PyObject *read_inline_image(PDF *self, const char **start,
   PyObject *filter = NULL;
   PyObject *parms;
   const char *cp;
-  const char *op;
   long length;
 
   cp = skipwhitespace(*start, end);
@@ -2643,17 +2669,20 @@ static PyObject *read_inline_image(PDF *self, const char **start,
       return NULL;
     }
     if (key->ob_type == &OperatorType) {
-      if (!(op = PyBytes_AsString(key))) {
+      PyObject *operatorobj;
+      if (!(operatorobj = PyUnicode_AsASCIIString(key))) {
         Py_DECREF(key);
         Py_DECREF(dict);
         return NULL;
       }
-      if (strcmp(op, "ID")) {
+      if (strcmp(PyBytes_AS_STRING(operatorobj), "ID")) {
         Py_DECREF(key);
         Py_DECREF(dict);
+        Py_DECREF(operatorobj);
         return pdf_error(self, cp,
             "Unexpected operator when reading inline image dictionary");
       }
+      Py_DECREF(operatorobj);
       Py_DECREF(key);
       if (cp >= end || !is_pdfwhitespace(*cp)) {
         Py_DECREF(dict);
@@ -2797,18 +2826,20 @@ static PyObject *read_inline_image(PDF *self, const char **start,
         Py_DECREF(value);
         Py_DECREF(dict);
       }
-      if (!(op = PyBytes_AsString(obj))) {
+      if (!(operatorobj = PyUnicode_AsASCIIString(obj))) {
         Py_DECREF(obj);
         Py_DECREF(value);
         Py_DECREF(dict);
         return NULL;
       }
-      if (strcmp(op, "EI")) {
+      if (strcmp(PyBytes_AS_STRING(operatorobj), "EI")) {
+        Py_DECREF(operatorobj);
         Py_DECREF(obj);
         Py_DECREF(value);
         Py_DECREF(dict);
         return pdf_error(self, cp, "Missing EI operator after inline image");
       }
+      Py_DECREF(operatorobj);
       Py_DECREF(obj);
       obj = PyObject_CallFunction((PyObject *)&StreamObjectType, "OOO", self,
           dict, value);
@@ -2906,7 +2937,8 @@ static PyObject *read_object(PDF *self, const char **start, const char *end,
       decoded[len++] = (decodexdigit(cp[1]) << 4) + decodexdigit(cp[2]);
       cp += 2;
     }
-    obj = PyObject_CallFunction((PyObject *)&NameType, "(s#)", decoded, len);
+    obj = PyObject_CallFunction((PyObject *)&NameType, "(s#)",
+        decoded, len);
     PyMem_Free(decoded);
     *start = cp;
     return obj;
@@ -3490,7 +3522,7 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
         Py_DECREF(obj);
         return 0;
       }
-      if (PyBytes_AsStringAndSize(obj2, &data, &len) < 0) {
+      if (PyBytes_AsStringAndSize(value, &data, &len) < 0) {
         Py_DECREF(obj2);
         Py_DECREF(obj);
         return 0;
@@ -3720,13 +3752,19 @@ static PyObject *check_password(PDF *self, PyObject *encrypt,
   keylen >>= 3;
   len = 0;
   if (password) {
+    PyObject *passobj;
     char *str;
     Py_ssize_t str_len;
 
-    if (PyBytes_AsStringAndSize(password, &str, &str_len) < 0)
+    if (!(passobj = PyUnicode_AsUTF8String(password)))
       return NULL;
+    if (PyBytes_AsStringAndSize(passobj, &str, &str_len) < 0) {
+      Py_DECREF(passobj);
+      return NULL;
+    }
     for (; len < 32 && len < str_len; len++)
       passbuf[len] = str[len];
+    Py_DECREF(passobj);
   }
   for (; len < 32; len++)
     passbuf[len] = decrypt_padding[len];
@@ -4276,8 +4314,8 @@ PyObject *flatedecode(PDF *self, const char *data, Py_ssize_t len,
 
   if (!(decompress = PyObject_CallFunctionObjArgs(decompressobj, NULL)))
     return NULL;
-  if (!(obj = PyObject_CallMethod(decompress, "decompress", "s#", data,
-          len))) {
+  if (!(obj = PyObject_CallMethod(decompress, "decompress", FORMAT_BYTES,
+          data, len))) {
     Py_DECREF(decompress);
     return NULL;
   }
