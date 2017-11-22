@@ -1290,7 +1290,7 @@ static PyObject *decode_font_string_encoding(PyObject *encoding,
       goto error;
     while ((item = PyIter_Next(iter))) {
       if (PyLong_Check(item)) {
-        charno = PyLong_AS_LONG(item);
+        charno = PyLong_AsLong(item);
       } else if (PyBytes_Check(item) || PyUnicode_Check(item)) {
         if (charno == *data) { /* found an entry for our byte value */
           if (!(obj = PyObject_GetItem(glyphlist, item))) {
@@ -2325,7 +2325,7 @@ static PyObject *indirectobject_getObject(IndirectObject *self) {
     self->obj = obj;
     return obj;
   }
-  offset = PyLong_AS_LONG(obj);
+  offset = PyLong_AsLong(obj);
   Py_DECREF(obj);
   if (self->pdf->key) {
     PyObject *md5obj;
@@ -3188,7 +3188,7 @@ static PyObject *read_object(PDF *self, const char **start, const char *end,
           Py_DECREF(dict);
           return NULL;
         }
-        length = PyLong_AS_LONG(obj);
+        length = PyLong_AsLong(obj);
         Py_DECREF(obj);
         if (length < 0) {
           Py_DECREF(dict);
@@ -3497,7 +3497,7 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
           Py_DECREF(obj);
           return 0;
         }
-        fields[i] = PyLong_AS_LONG(obj2);
+        fields[i] = PyLong_AsLong(obj2);
         Py_DECREF(obj2);
         if (fields[i] < 0 || fields[i] > 4 || (i == 1 && fields[i] < 1)) {
           pdf_error(self, start + startxref,
@@ -3574,7 +3574,7 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
             Py_DECREF(obj);
             return 0;
           }
-          num = PyLong_AS_LONG(obj2);
+          num = PyLong_AsLong(obj2);
           Py_DECREF(obj2);
           if (!(obj2 = PySequence_GetItem(index, indexpos + 1))) {
             Py_DECREF(index);
@@ -3590,7 +3590,7 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
             Py_DECREF(obj);
             return 0;
           }
-          size = PyLong_AS_LONG(obj2);
+          size = PyLong_AsLong(obj2);
           Py_DECREF(obj2);
         }
         while (size > 0 && cp2 + rowlen <= data + len) {
@@ -3668,7 +3668,7 @@ static int initial_parse(PDF *self, const char *start, const char *end) {
           Py_DECREF(obj);
           return 0;
         }
-        startxref = PyLong_AS_LONG(value);
+        startxref = PyLong_AsLong(value);
       }
       if (!PyDict_GetItem(self->trailer, key)) {
         if (PyDict_SetItem(self->trailer, key, value)) {
@@ -3962,7 +3962,7 @@ static int decrypt(PDF *self, PyObject *password) {
     Py_DECREF(encrypt);
     return 0;
   }
-  v = PyLong_AS_LONG(value);
+  v = PyLong_AsLong(value);
   Py_DECREF(value);
   if (v != 1 && v != 2) {
     PyErr_Format(notsupportederror, "Encrypt V value of %ld is not supported",
