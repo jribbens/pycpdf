@@ -4,7 +4,7 @@ from setuptools import Extension, setup
 
 setup(
     name='pycpdf',
-    version='1.0.0',
+    version='1.0.1',
     description='Extract content and metadata from PDF files efficiently',
     author='Jon Ribbens',
     url='https://github.com/jribbens/pycpdf',
