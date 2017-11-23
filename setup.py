@@ -7,6 +7,7 @@ setup(
     version='1.0.0',
     description='Extract content and metadata from PDF files efficiently',
     author='Jon Ribbens',
+    url='https://github.com/jribbens/pycpdf',
     license='MIT',
     classifiers=[
         'Development Status :: 4 - Beta',
