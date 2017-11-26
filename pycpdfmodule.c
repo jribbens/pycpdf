@@ -3,6 +3,8 @@
 #include "Python.h"
 #include "structmember.h"
 
+#define PYCPDF_VERSION "1.0.2"
+
 #if PY_MAJOR_VERSION >= 3
 #define FORMAT_BYTES "y#"
 #define NUM_OBJ PyLongObject
@@ -6855,10 +6857,15 @@ PyMODINIT_FUNC initpycpdf(void) {
 #if PY_MAJOR_VERSION >= 3
   if (!(m = PyModule_Create(&moduledef)))
     goto error;
+	if (!(obj = PyUnicode_FromString(PYCPDF_VERSION)))
+		goto error;
 #else
   if (!(m = Py_InitModule3("pycpdf", pycpdf_methods, pycpdf_doc)))
     goto error;
+	if (!(obj = PyString_FromString(PYCPDF_VERSION)))
+		goto error;
 #endif
+  PyModule_AddObject(m, "__version__", obj);
 
   if (!(othermod = PyImport_ImportModule("hashlib")))
     goto error;

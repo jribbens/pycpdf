@@ -1,10 +1,24 @@
 """setup.py for pycpdf"""
 
+import os
+import re
 from setuptools import Extension, setup
+
+
+def get_version():
+    with open(os.path.join(os.path.dirname(__file__), 'pycpdfmodule.c'),
+              'r') as source:
+        for line in source:
+            match = re.match(r'#define PYCPDF_VERSION "([0-9.]+)"', line)
+            if match:
+                return match.group(1)
+        else:
+            raise Exception("Couldn't find PYCPDF_VERSION in pycpdfmodule.c")
+
 
 setup(
     name='pycpdf',
-    version='1.0.1',
+    version=get_version(),
     description='Extract content and metadata from PDF files efficiently',
     author='Jon Ribbens',
     url='https://github.com/jribbens/pycpdf',
