@@ -43,9 +43,12 @@ class ReprPDFTest(PDFTest):
 
     def test_repr_value(self):
         """Test repr value for indirect objects"""
-        self.assertEqual(
+        self.assertIn(
             repr(self.pdf.pages[0]['Resources']['ColorSpace']['CS0']),
-            "['ICCBased', <IndirectObject(62, 0)>]")
+            (
+                "['ICCBased', <IndirectObject(62, 0)>]",
+                "[u'ICCBased', <IndirectObject(62, 0)>]",
+            ))
 
 
 class SimplePDFTest(PDFTest):
