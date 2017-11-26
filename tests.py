@@ -127,6 +127,31 @@ class SimplePDFTest(PDFTest):
                 self.assertEqual(text[:27], 'This is a test PDF document')
 
 
+class CrazyOnesPDFTest(PDFTest):
+    """Tests for crazyones.pdf"""
+    filename = 'crazyones.pdf'
+
+    def test_catalog(self):
+        """Test the catalog dictionary"""
+        self.assertIsInstance(self.pdf.catalog, pycpdf.Dictionary)
+        self.assertIs(self.pdf.catalog, self.pdf.trailer['Root'])
+
+    def test_version(self):
+        """Test the version indicator"""
+        self.assertIsInstance(self.pdf.version, unicode)
+        self.assertEqual(self.pdf.version, '1.5')
+
+    def test_info(self):
+        """Test the info dictionary"""
+        self.assertIsInstance(self.pdf.info, pycpdf.Dictionary)
+        self.assertIs(self.pdf.info, self.pdf.trailer['Info'])
+        self.assertEqual(self.pdf.info['Producer'], 'xdvipdfmx (20140317)')
+
+    def test_linearized(self):
+        """Test the linearization dictionary"""
+        self.assertIs(self.pdf.linearized, None)
+
+
 class VersionTest(unittest.TestCase):
     def test_version_type(self):
         """Test the pycpdf.__version__ string's type"""
