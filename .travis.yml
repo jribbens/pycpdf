@@ -1,8 +1,16 @@
 language: python
 python:
-  - "2.7"
-  - "3.4"
-  - "3.5"
-  - "3.6"
+- '2.7'
+- '3.4'
+- '3.5'
+- '3.6'
 script:
-  - python setup.py test
+- python setup.py test
+deploy:
+  provider: pypi
+  distributions: 'sdist bdist_wheel'
+  user: jribbens
+  password:
+    secure: eF2/VIjCEmXnnAo+LAxRd0XM4FEL4BzkVcW8eEQloUU09woFVajQaIVFc1ufKELD1RVJOCeSMjclIH3i8T1r/JcHSp+QivR+fenSlZ0dV5kULs1wmePaUzcCESP+5JCMpdyHd0nHWp8Ttga9h9cJMviZ2d6d9u//2fxJnVhCizJ1FrPc26c8+V5j8IrmCAoViE+gh/t5Ippg7m+H25PmOozPxanq4Sw5bhUrqSrzc9nhdkkZ7FtuhGovoihmLiAk0xvXxYtuMfDhtDVvZa1T4Eu5RhDrryFOANM3hdTRVFxazRfpLUQ4sCWGNd6gdTUWzWT4BsJ8VN7H702GlaNdWu4Y5oyMyJ4ftpzeRbgIgSegNTw5GIQWcrXDCSqSqeNL2fAigFEJe2CW3/djfqXKWKSP3/lBRIrCz7Ttn0+x++WX/uNhFfu4UqE84qKdGq9tTA1+CUIM3q6QNBaGtTVfgo+hcM6GvL6acKPOGV6NSbnGx3ly2e4mJ/PhI7qmP3n3CbxS3bxWEkivGHJY9kx/OepdgEKO15BPjiOe3QYphK4y7BDNARiWK9vd66mnc9JpA54S6YZ8uR17iMpEBGLFmdMYD+4DkfvZQHlfmXjTeaN5CiNOXg5ZN8JmqC3QaWHJY5JE4QEaNvtxpmRtnn3f83YwpJxiSeOEBpFr8tq5UUY=
+  on:
+    tags: true
