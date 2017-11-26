@@ -31,6 +31,23 @@ class PDFTest(unittest.TestCase):
         cls.pdf = pycpdf.PDF(data)
 
 
+class ReprPDFTest(PDFTest):
+    """Test that repr works on indirect objects"""
+    filename = 'simple.pdf'
+
+    def test_repr_type(self):
+        """Test repr type for indirect objects"""
+        self.assertIsInstance(
+            repr(self.pdf.pages[0]['Resources']['ColorSpace']['CS0']),
+            str)
+
+    def test_repr_value(self):
+        """Test repr value for indirect objects"""
+        self.assertEqual(
+            repr(self.pdf.pages[0]['Resources']['ColorSpace']['CS0']),
+            "['ICCBased', <IndirectObject(62, 0)>]")
+
+
 class SimplePDFTest(PDFTest):
     """Tests for simple.pdf"""
     filename = 'simple.pdf'

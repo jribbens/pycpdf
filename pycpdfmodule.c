@@ -6,6 +6,7 @@
 #define PYCPDF_VERSION "1.0.2"
 
 #if PY_MAJOR_VERSION >= 3
+#define STR_FROMFORMAT PyUnicode_FromFormat
 #define FORMAT_BYTES "y#"
 #define NUM_OBJ PyLongObject
 #define NUM_TYPE PyLong_Type
@@ -13,6 +14,7 @@
 #define NUM_ASLONG PyLong_AsLong
 #define NUM_FROMLONG PyLong_FromLong
 #else
+#define STR_FROMFORMAT PyString_FromFormat
 #define FORMAT_BYTES "s#"
 #define NUM_OBJ PyIntObject
 #define NUM_TYPE PyInt_Type
@@ -2054,7 +2056,7 @@ static PyObject *streamreference_new(PyTypeObject *type, PyObject *args,
 
 
 static PyObject *streamreference_repr(StreamReference *self) {
-  return PyBytes_FromFormat("<StreamReference(%ld, %ld)>", self->number,
+  return STR_FROMFORMAT("<StreamReference(%ld, %ld)>", self->number,
       self->index);
 }
 
@@ -2234,7 +2236,7 @@ static PyObject *indirectobject_new(PyTypeObject *type, PyObject *args,
 
 
 static PyObject *indirectobject_repr(IndirectObject *self) {
-  return PyBytes_FromFormat("<IndirectObject(%ld, %ld)>", self->number,
+  return STR_FROMFORMAT("<IndirectObject(%ld, %ld)>", self->number,
       self->generation);
 }
 
