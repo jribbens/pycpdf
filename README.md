@@ -80,6 +80,11 @@ Some encryption and image encoding methods are not currently supported.
 
 ## History
 
+### 1.0.3 (2017-11-26)
+
+  - Bug-fixed StreamObject.contents
+  - When decoding text, if ToUnicode fails, fall back to Encoding
+
 ### 1.0.2 (2017-11-26)
 
   - Extended documentation slightly.
