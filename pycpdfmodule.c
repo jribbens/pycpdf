@@ -1017,23 +1017,17 @@ static PyObject *streamobject_get_data(StreamObject *self, void *closure) {
 
 static PyObject *streamobject_get_contents(StreamObject *self,
     void *closure) {
-  PyObject *data;
-  PyObject *contents;
-
-  if (self->contents) {
-    Py_INCREF(self->contents);
-    return self->contents;
+  if (!self->contents) {
+    PyObject *data;
+    if (!(data = streamobject_get_data(self, NULL)))
+      return NULL;
+    self->contents = parse_contents(self->pdf, data);
+    Py_DECREF(data);
+    if (!self->contents)
+      return NULL;
   }
-
-  if (!(data = streamobject_get_data(self, NULL)))
-    return NULL;
-  contents = parse_contents(self->pdf, data);
-  Py_DECREF(data);
-  if (!contents)
-    return NULL;
-  self->contents = contents;
   Py_INCREF(self->contents);
-  return contents;
+  return self->contents;
 }
 
 
@@ -6859,13 +6853,13 @@ PyMODINIT_FUNC initpycpdf(void) {
 #if PY_MAJOR_VERSION >= 3
   if (!(m = PyModule_Create(&moduledef)))
     goto error;
-	if (!(obj = PyUnicode_FromString(PYCPDF_VERSION)))
-		goto error;
+  if (!(obj = PyUnicode_FromString(PYCPDF_VERSION)))
+    goto error;
 #else
   if (!(m = Py_InitModule3("pycpdf", pycpdf_methods, pycpdf_doc)))
     goto error;
-	if (!(obj = PyString_FromString(PYCPDF_VERSION)))
-		goto error;
+  if (!(obj = PyString_FromString(PYCPDF_VERSION)))
+    goto error;
 #endif
   PyModule_AddObject(m, "__version__", obj);
 

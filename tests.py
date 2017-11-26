@@ -51,6 +51,41 @@ class ReprPDFTest(PDFTest):
             ))
 
 
+class ContentsPDFTest(PDFTest):
+    """Test .contents on stream objects"""
+    filename = 'simple.pdf'
+
+    def test_contents_type(self):
+        """Test that .contents has the right type"""
+        contents = self.pdf.pages[0]['Resources']['Font']['TT1'][
+            'ToUnicode'].contents
+        self.assertIsInstance(contents, list)
+
+    def test_contents_value(self):
+        """Test that .contents has the right value"""
+        contents = self.pdf.pages[0]['Resources']['Font']['TT1'][
+            'ToUnicode'].contents
+        self.assertEqual(len(contents), 19)
+        self.assertEqual(
+            contents[:10],
+            [
+                ['CIDInit', 'ProcSet', 'findresource'],
+                ['begin'],
+                [12, 'dict'],
+                ['begin'],
+                ['begincmap'],
+                [
+                    'CIDSystemInfo',
+                    {'Ordering': 'UCS', 'Registry': 'Adobe', 'Supplement': 0},
+                    'def'
+                ],
+                ['CMapName', 'Adobe-Identity-UCS', 'def'],
+                ['CMapType', 2, 'def'],
+                [1, 'begincodespacerange'],
+                [b'\x00\x00', u'\xff\xff', 'endcodespacerange'],
+            ])
+
+
 class SimplePDFTest(PDFTest):
     """Tests for simple.pdf"""
     filename = 'simple.pdf'
