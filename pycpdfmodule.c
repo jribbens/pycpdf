@@ -1614,8 +1614,8 @@ static PyObject *cmap_match_bfchar(PyObject *chars, const unsigned char *data,
 }
 
 
-static PyObject *decode_font_string_cmap(PyObject *cmap, const char *data,
-    Py_ssize_t len) {
+static PyObject *decode_font_string_cmap(PyObject *cmap, PyObject *encoding,
+    const char *data, Py_ssize_t len) {
   PyObject *obj = NULL;
   PyObject *operatorobj = NULL;
   PyObject *cmapcontents = NULL;
@@ -1626,6 +1626,7 @@ static PyObject *decode_font_string_cmap(PyObject *cmap, const char *data,
   const char *operator;
   Py_ssize_t itemlen;
   Py_ssize_t codelen;
+  char found;
 
   if (!(obj = streamobject_get_data((StreamObject *)cmap, NULL)))
     goto error;
@@ -1636,6 +1637,7 @@ static PyObject *decode_font_string_cmap(PyObject *cmap, const char *data,
     goto error;
   while (data < end) {
     codelen = (end - data) > 3 ? 3 : (end - data);
+    found = 0;
     if (!(iter = PyObject_GetIter(cmapcontents)))
       goto error;
     while ((item = PyIter_Next(iter))) {
@@ -1653,6 +1655,7 @@ static PyObject *decode_font_string_cmap(PyObject *cmap, const char *data,
                   &codelen)))
             goto error;
           if (obj != Py_None) {
+            found = 1;
             if (PyList_Append(out, obj) < 0)
               goto error;
             Py_CLEAR(obj);
@@ -1665,6 +1668,7 @@ static PyObject *decode_font_string_cmap(PyObject *cmap, const char *data,
                   &codelen)))
             goto error;
           if (obj != Py_None) {
+            found = 1;
             if (PyList_Append(out, obj) < 0)
               goto error;
             Py_CLEAR(obj);
@@ -1682,6 +1686,13 @@ static PyObject *decode_font_string_cmap(PyObject *cmap, const char *data,
     Py_CLEAR(iter);
     if (PyErr_Occurred())
       goto error;
+    if (!found && encoding) {
+      if (!(obj = decode_font_string_encoding(encoding, data, codelen)))
+        goto error;
+      if (PyList_Append(out, obj) < 0)
+        goto error;
+      Py_CLEAR(obj);
+    }
     data += codelen ? codelen : 1;
   }
   obj = PyObject_CallMethod(string_emptystring, "join", "O", out);
@@ -1701,33 +1712,32 @@ error:
 
 static PyObject *decode_font_string(PyObject *font, const char *data,
     Py_ssize_t len) {
-  PyObject *obj;
+  PyObject *unicode = NULL;
+  PyObject *encoding = NULL;
   PyObject *retval;
 
-  if (PyMapping_HasKeyString(font, "ToUnicode")) {
-    if (!(obj = PyMapping_GetItemString(font, "ToUnicode")))
+  if (PyMapping_HasKeyString(font, "Encoding")) {
+    if (!(encoding = PyMapping_GetItemString(font, "Encoding")))
       return NULL;
-    if (obj->ob_type == &StreamObjectType) {
-      retval = decode_font_string_cmap(obj, data, len);
-      Py_DECREF(obj);
-      if (retval != Py_None)
-        return retval;
+    if (encoding->ob_type != &DictionaryType)
+      Py_CLEAR(encoding);
+  }
+  if (PyMapping_HasKeyString(font, "ToUnicode")) {
+    if (!(unicode = PyMapping_GetItemString(font, "ToUnicode")))
+      return NULL;
+    if (unicode->ob_type == &StreamObjectType) {
+      retval = decode_font_string_cmap(unicode, encoding, data, len);
+      Py_DECREF(unicode);
+      Py_XDECREF(encoding);
+      return retval;
     } else {
-      Py_DECREF(obj);
+      Py_DECREF(unicode);
     }
   }
-  if (PyMapping_HasKeyString(font, "Encoding")) {
-    if (!(obj = PyMapping_GetItemString(font, "Encoding")))
-      return NULL;
-    if (obj->ob_type == &DictionaryType) {
-      retval = decode_font_string_encoding(obj, data, len);
-      Py_DECREF(obj);
-      if (retval != Py_None)
-        return retval;
-      Py_DECREF(retval);
-    } else {
-      Py_DECREF(obj);
-    }
+  if (encoding) {
+    retval = decode_font_string_encoding(encoding, data, len);
+    Py_DECREF(encoding);
+    return retval;
   }
   Py_INCREF(Py_None);
   return Py_None;
