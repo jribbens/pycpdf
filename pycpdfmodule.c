@@ -1031,8 +1031,8 @@ static PyObject *streamobject_get_contents(StreamObject *self,
   Py_DECREF(data);
   if (!contents)
     return NULL;
-  Py_INCREF(self->contents);
   self->contents = contents;
+  Py_INCREF(self->contents);
   return contents;
 }
 
