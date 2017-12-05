@@ -6876,14 +6876,14 @@ PyMODINIT_FUNC initpycpdf(void) {
   if (!(othermod = PyImport_ImportModule("hashlib")))
     goto error;
   md5 = PyObject_GetAttrString(othermod, "md5");
-  Py_DECREF(othermod);
+  Py_CLEAR(othermod);
   if (!md5)
     goto error;
 
   if (!(othermod = PyImport_ImportModule("zlib")))
     goto error;
   decompressobj = PyObject_GetAttrString(othermod, "decompressobj");
-  Py_DECREF(othermod);
+  Py_CLEAR(othermod);
   if (!decompressobj)
     goto error;
 
@@ -6970,25 +6970,25 @@ PyMODINIT_FUNC initpycpdf(void) {
           "strict", &byteorder)) || PyMapping_SetItemString(encodings,
           "StandardEncoding", obj) < 0)
     goto error;
-  Py_DECREF(obj);
+  Py_CLEAR(obj);
   byteorder = -1;
   if (!(obj = PyUnicode_DecodeUTF16(raw_macromanencoding, 512,
           "strict", &byteorder)) || PyMapping_SetItemString(encodings,
           "MacRomanEncoding", obj) < 0)
     goto error;
-  Py_DECREF(obj);
+  Py_CLEAR(obj);
   byteorder = -1;
   if (!(obj = PyUnicode_DecodeUTF16(raw_winansiencoding, 512,
           "strict", &byteorder)) || PyMapping_SetItemString(encodings,
           "WinAnsiEncoding", obj) < 0)
     goto error;
-  Py_DECREF(obj);
+  Py_CLEAR(obj);
   byteorder = -1;
   if (!(obj = PyUnicode_DecodeUTF16(raw_macexpertencoding, 512,
           "strict", &byteorder)) || PyMapping_SetItemString(encodings,
           "MacExpertEncoding", obj) < 0)
     goto error;
-  Py_DECREF(obj);
+  Py_CLEAR(obj);
   Py_INCREF(encodings);
   PyModule_AddObject(m, "encodings", encodings);
   if (!(glyphlist = PyDict_New()))
@@ -7002,7 +7002,7 @@ PyMODINIT_FUNC initpycpdf(void) {
       goto error;
     if (PyMapping_SetItemString(glyphlist, (char *)*glyphname, obj) < 0)
       goto error;
-    Py_DECREF(obj);
+    Py_CLEAR(obj);
     glyphname++;
     glyphvalue++;
   }
@@ -7025,8 +7025,8 @@ PyMODINIT_FUNC initpycpdf(void) {
     }
     if (PyObject_SetItem(unicode_translations, obj, obj2) < 0)
       goto error;
-    Py_DECREF(obj2);
-    Py_DECREF(obj);
+    Py_CLEAR(obj2);
+    Py_CLEAR(obj);
   }
   Py_INCREF(unicode_translations);
   PyModule_AddObject(m, "unicode_translations", unicode_translations);
