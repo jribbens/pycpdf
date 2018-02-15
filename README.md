@@ -35,8 +35,8 @@ The module also contains `unicode_translations`, which is a dictionary
 suitable for passing to `str.translate` to simplify Unicode strings
 somewhat:
 
-  - replace various spaces (00A0, 2000-200B, 3000) with an ASCII space
-  - remove soft hyphens (00AD)
+  - replace various spaces (00A0, 2000-200A, 3000) with an ASCII space
+  - remove soft hyphens (00AD) and zero width space (200B)
   - replace various hyphens (2010-2014, 2212) with an ASCII hyphen
   - replace various sexed quotation marks (2018, 2019, 201C, 201D)
     with the equivalent unsexed ASCII quotation marks
