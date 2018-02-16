@@ -69,7 +69,7 @@ there may be unexpected spacing.
 If container objects (arrays and dictionaries) contain indirect objects then
 these objects will not be extracted from the PDF file until they are
 referenced for the first time. This is to enable opening large PDF files
-efficently. Altering the contents of container objects is not actively
+efficiently. Altering the contents of container objects is not actively
 prevented but should never be done and will lead to undefined behaviour.
 
 The intention of the extension is to allow fast low-level access to all the
