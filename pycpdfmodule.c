@@ -2599,25 +2599,38 @@ typedef struct abbreviation {
 
 static PyObject *expand_abbreviations(PyObject *key, PyObject *name,
     abbreviation *abbreviations) {
+  PyObject *keyobj = NULL;
+  PyObject *nameobj = NULL;
   const char *keystr = NULL;
-  const char *namestr;
+  const char *namestr = NULL;
 
-  if (!(!key || (keystr = PyBytes_AsString(key))) ||
-      !(namestr = PyBytes_AsString(name))) {
+  if (key)
+    if ((keyobj = PyUnicode_AsASCIIString(key)))
+      keystr = PyBytes_AsString(keyobj);
+  if (!PyErr_Occurred())
+    if ((nameobj = PyUnicode_AsASCIIString(name)))
+      namestr = PyBytes_AsString(nameobj);
+  if (PyErr_Occurred()) {
     PyErr_Clear();
   } else {
     while (abbreviations->abbreviation) {
       if (keystr && !strcmp(keystr, abbreviations->expanded) &&
-          abbreviations->keyabbreviations)
-        return expand_abbreviations(NULL, name,
+          abbreviations->keyabbreviations) {
+        name = expand_abbreviations(NULL, name,
             abbreviations->keyabbreviations);
-      else if (!keystr && !strcmp(namestr, abbreviations->abbreviation))
-        return PyObject_CallFunction((PyObject *)&NameType,
+        break;
+      } else if (!keystr && !strcmp(namestr, abbreviations->abbreviation)) {
+        name = PyObject_CallFunction((PyObject *)&NameType,
             "s", abbreviations->expanded);
+        break;
+      }
       abbreviations++;
     }
   }
-  Py_INCREF(name);
+  Py_XDECREF(keyobj);
+  Py_XDECREF(nameobj);
+  if (name)
+    Py_INCREF(name);
   return name;
 }
 
@@ -2770,22 +2783,25 @@ static PyObject *read_inline_image(PDF *self, const char **start,
           Py_DECREF(obj);
         }
         if (!colors) {
-          const char *colorspace;
           if (!(obj = PyMapping_GetItemString(dict, "ColorSpace"))) {
             Py_DECREF(dict);
             return NULL;
           }
-          if (!(colorspace = PyBytes_AsString(obj))) {
-            Py_DECREF(obj);
-            Py_DECREF(dict);
-            return NULL;
+          if (obj->ob_type == &NameType) {
+            PyObject *colorspaceobj;
+            if ((colorspaceobj = PyUnicode_AsASCIIString(obj))) {
+              const char *colorspace = PyBytes_AS_STRING(colorspaceobj);
+              if (!strcmp(colorspace, "DeviceRGB"))
+                colors = 3;
+              else if (!strcmp(colorspace, "DeviceGray"))
+                colors = 1;
+              else if (!strcmp(colorspace, "DeviceCMYK"))
+                colors = 4;
+              Py_DECREF(colorspaceobj);
+            } else {
+              PyErr_Clear();
+            }
           }
-          if (!strcmp(colorspace, "DeviceRGB"))
-            colors = 3;
-          else if (!strcmp(colorspace, "DeviceGray"))
-            colors = 1;
-          else if (!strcmp(colorspace, "DeviceCMYK"))
-            colors = 4;
           Py_DECREF(obj);
         }
         if (!colors || width < 0 || height < 0 || bitspercomponent < 0) {
@@ -2887,15 +2903,17 @@ static PyObject *read_inline_image(PDF *self, const char **start,
       Py_DECREF(dict);
       return NULL;
     }
-    if (!(obj = expand_abbreviations(key, value,
-            inline_image_abbreviations))) {
+    if (value->ob_type == &NameType) {
+      if (!(obj = expand_abbreviations(key, value,
+              inline_image_abbreviations))) {
+        Py_DECREF(value);
+        Py_DECREF(key);
+        Py_DECREF(dict);
+        return NULL;
+      }
       Py_DECREF(value);
-      Py_DECREF(key);
-      Py_DECREF(dict);
-      return NULL;
+      value = obj;
     }
-    Py_DECREF(value);
-    value = obj;
     result = value != Py_None ? PyDict_SetItem(dict, key, value) : 0;
     Py_DECREF(key);
     Py_DECREF(value);
