@@ -16,10 +16,18 @@ def get_version():
             raise Exception("Couldn't find PYCPDF_VERSION in pycpdfmodule.c")
 
 
+def get_long_description():
+    with open(os.path.join(os.path.dirname(__file__), 'README.md'),
+              'r') as readme:
+        return readme.read()
+
+
 setup(
     name='pycpdf',
     version=get_version(),
     description='Extract content and metadata from PDF files efficiently',
+    long_description=get_long_description(),
+    long_description_content_type='text/markdown',
     author='Jon Ribbens',
     url='https://github.com/jribbens/pycpdf',
     license='MIT',
