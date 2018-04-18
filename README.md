@@ -80,6 +80,10 @@ Some encryption and image encoding methods are not currently supported.
 
 ## History
 
+### 1.0.4 (2018-04-18)
+
+  - Bug fixes to do with in-line images
+
 ### 1.0.3 (2017-11-26)
 
   - Bug-fixed StreamObject.contents

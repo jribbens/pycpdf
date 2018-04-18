@@ -3,7 +3,7 @@
 #include "Python.h"
 #include "structmember.h"
 
-#define PYCPDF_VERSION "1.0.3"
+#define PYCPDF_VERSION "1.0.4"
 
 #if PY_MAJOR_VERSION >= 3
 #define STR_FROMFORMAT PyUnicode_FromFormat
